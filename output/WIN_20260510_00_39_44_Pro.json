@@ -1,0 +1,14 @@
+{
+  "language": "pt",
+  "language_probability": 0.9886065125465393,
+  "full_text": "Testando a nova aplicação, quero saber se funciona, estração de audio.",
+  "segments": [
+    {
+      "start": 0.34,
+      "end": 5.84,
+      "start_formatted": "00:00:00",
+      "end_formatted": "00:00:05",
+      "text": "Testando a nova aplicação, quero saber se funciona, estração de audio."
+    }
+  ]
+}
