@@ -29,22 +29,36 @@ class Transcription:
 
 def transcribe_audio(audio_path: Path, model_size: str = "base") -> Transcription:
     """Transcreve um arquivo de áudio usando faster-whisper."""
-    logger.info("Carregando modelo Whisper (%s)...", model_size)
-    t0 = time.time()
-    model = WhisperModel(model_size, device="auto", compute_type="auto")
-    logger.info("Modelo carregado em %.2fs", time.time() - t0)
+    if not audio_path.exists():
+        logger.error("Arquivo de áudio não encontrado: %s", audio_path)
+        raise FileNotFoundError(f"Arquivo de áudio não encontrado: {audio_path}")
 
-    logger.info("Transcrevendo: %s", audio_path.name)
-    t1 = time.time()
-    segments_gen, info = model.transcribe(
-        str(audio_path),
-        beam_size=5,
-        vad_filter=True,
-    )
+    try:
+        logger.info("Carregando modelo Whisper (%s)...", model_size)
+        t0 = time.time()
+        model = WhisperModel(model_size, device="auto", compute_type="auto")
+        logger.info("Modelo carregado em %.2fs", time.time() - t0)
+    except Exception as e:
+        logger.error("Falha ao carregar modelo Whisper '%s': %s", model_size, e)
+        raise RuntimeError(
+            f"Falha ao carregar modelo Whisper '{model_size}': {e}"
+        ) from e
 
-    segments = []
-    for seg in segments_gen:
-        segments.append(Segment(start=seg.start, end=seg.end, text=seg.text))
+    try:
+        logger.info("Transcrevendo: %s", audio_path.name)
+        t1 = time.time()
+        segments_gen, info = model.transcribe(
+            str(audio_path),
+            beam_size=5,
+            vad_filter=True,
+        )
+
+        segments = []
+        for seg in segments_gen:
+            segments.append(Segment(start=seg.start, end=seg.end, text=seg.text))
+    except Exception as e:
+        logger.error("Falha ao transcrever %s: %s", audio_path.name, e)
+        raise RuntimeError(f"Falha ao transcrever {audio_path.name}: {e}") from e
 
     elapsed = time.time() - t1
     transcription = Transcription(

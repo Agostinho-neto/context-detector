@@ -19,12 +19,17 @@ def _get_ffmpeg() -> str:
 
 def extract_audio(video_path: Path, output_dir: Path) -> Path:
     """Extrai o áudio de um arquivo de vídeo usando FFmpeg."""
+    if not video_path.exists():
+        logger.error("Arquivo de vídeo não encontrado: %s", video_path)
+        raise FileNotFoundError(f"Arquivo de vídeo não encontrado: {video_path}")
+
     audio_path = output_dir / f"{video_path.stem}.wav"
 
     logger.info("Extraindo áudio: %s -> %s", video_path.name, audio_path.name)
 
+    ffmpeg = _get_ffmpeg()
     cmd = [
-        _get_ffmpeg(),
+        ffmpeg,
         "-i",
         str(video_path),
         "-vn",  # sem vídeo
@@ -39,11 +44,19 @@ def extract_audio(video_path: Path, output_dir: Path) -> Path:
     ]
 
     t0 = time.time()
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        logger.error(
+            "FFmpeg não encontrado. Instale o FFmpeg ou coloque-o em bin/ffmpeg.exe"
+        )
+        raise FileNotFoundError(
+            "FFmpeg não encontrado. Instale o FFmpeg ou coloque-o em bin/ffmpeg.exe"
+        )
     elapsed = time.time() - t0
 
     if result.returncode != 0:

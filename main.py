@@ -26,24 +26,33 @@ def show_banner():
     print(f"{'─' * 60}")
 
 
-def process_video(video_path: Path, output_dir: Path, model_size: str = "base") -> None:
+def process_video(video_path: Path, output_dir: Path, model_size: str = "base") -> bool:
     print(f"\n{'=' * 60}")
     print(f"Processando: {video_path.name}")
     print(f"{'=' * 60}")
 
-    # 1. Extrair áudio
-    audio_path = extract_audio(video_path, output_dir)
+    try:
+        # 1. Extrair áudio
+        audio_path = extract_audio(video_path, output_dir)
 
-    # 2. Transcrever áudio
-    transcription = transcribe_audio(audio_path, model_size=model_size)
+        # 2. Transcrever áudio
+        transcription = transcribe_audio(audio_path, model_size=model_size)
 
-    # 3. Salvar transcrição
-    save_transcription(transcription, video_path.stem, output_dir)
+        # 3. Salvar transcrição
+        save_transcription(transcription, video_path.stem, output_dir)
 
-    # Remover áudio temporário
-    audio_path.unlink(missing_ok=True)
+        # Remover áudio temporário
+        audio_path.unlink(missing_ok=True)
 
-    print(f"Concluído: {video_path.name}")
+        print(f"Concluído: {video_path.name}")
+        return True
+    except FileNotFoundError as e:
+        print(f"Erro — arquivo não encontrado: {e}")
+    except RuntimeError as e:
+        print(f"Erro ao processar {video_path.name}: {e}")
+    except OSError as e:
+        print(f"Erro de I/O ao processar {video_path.name}: {e}")
+    return False
 
 
 def get_video_files(input_path: Path) -> list[Path]:
@@ -106,10 +115,16 @@ def main():
 
     print(f"Encontrados {len(videos)} vídeo(s) para processar.")
 
+    success = 0
     for video in videos:
-        process_video(video, args.output, model_size=args.model)
+        if process_video(video, args.output, model_size=args.model):
+            success += 1
 
-    print(f"\nTodas as transcrições salvas em: {args.output.resolve()}")
+    print(f"\n{success}/{len(videos)} vídeo(s) transcritos com sucesso.")
+    print(f"Transcrições salvas em: {args.output.resolve()}")
+
+    if success < len(videos):
+        sys.exit(1)
 
 
 if __name__ == "__main__":

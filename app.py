@@ -55,23 +55,33 @@ if uploaded_file is not None:
             video_path.write_bytes(uploaded_file.getbuffer())
 
             # Pipeline
-            with st.status("Processando...", expanded=True) as status:
-                # 1. Extrair áudio
-                st.write("🔊 Extraindo áudio do vídeo...")
-                audio_path = extract_audio(video_path, tmp_path)
+            try:
+                with st.status("Processando...", expanded=True) as status:
+                    # 1. Extrair áudio
+                    st.write("🔊 Extraindo áudio do vídeo...")
+                    audio_path = extract_audio(video_path, tmp_path)
 
-                # 2. Transcrever
-                st.write(f"🧠 Transcrevendo com modelo **{model_size}**...")
-                transcription = transcribe_audio(audio_path, model_size=model_size)
+                    # 2. Transcrever
+                    st.write(f"🧠 Transcrevendo com modelo **{model_size}**...")
+                    transcription = transcribe_audio(audio_path, model_size=model_size)
 
-                # 3. Salvar
-                st.write("💾 Salvando transcrições...")
-                save_transcription(transcription, video_path.stem, output_dir)
+                    # 3. Salvar
+                    st.write("💾 Salvando transcrições...")
+                    save_transcription(transcription, video_path.stem, output_dir)
 
-                # Limpar áudio temp
-                audio_path.unlink(missing_ok=True)
+                    # Limpar áudio temp
+                    audio_path.unlink(missing_ok=True)
 
-                status.update(label="Concluído!", state="complete", expanded=True)
+                    status.update(label="Concluído!", state="complete", expanded=True)
+            except FileNotFoundError as e:
+                st.error(f"Arquivo não encontrado: {e}")
+                st.stop()
+            except RuntimeError as e:
+                st.error(f"Erro no processamento: {e}")
+                st.stop()
+            except OSError as e:
+                st.error(f"Erro de I/O: {e}")
+                st.stop()
 
             # Resultados
             st.divider()
