@@ -47,7 +47,9 @@ def extract_audio(video_path: Path, output_dir: Path) -> Path:
     elapsed = time.time() - t0
 
     if result.returncode != 0:
-        logger.error("FFmpeg falhou ao extrair áudio de %s: %s", video_path.name, result.stderr)
+        logger.error(
+            "FFmpeg falhou ao extrair áudio de %s: %s", video_path.name, result.stderr
+        )
         raise RuntimeError(
             f"FFmpeg falhou ao extrair áudio de {video_path.name}:\n{result.stderr}"
         )

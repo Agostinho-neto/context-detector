@@ -55,7 +55,10 @@ def transcribe_audio(audio_path: Path, model_size: str = "base") -> Transcriptio
 
     logger.info(
         "Transcrição concluída em %.2fs | idioma=%s | confiança=%.0f%% | segmentos=%d",
-        elapsed, info.language, info.language_probability * 100, len(segments),
+        elapsed,
+        info.language,
+        info.language_probability * 100,
+        len(segments),
     )
 
     return transcription
