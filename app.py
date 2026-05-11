@@ -11,7 +11,7 @@ VIDEO_EXTENSIONS = ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv"]
 st.set_page_config(page_title="Context Detector", page_icon="🎬", layout="centered")
 
 st.title("🎬 Context Detector")
-st.markdown("Extraia áudio de vídeos e transcreva automaticamente.")
+st.markdown("Extraia áudio de vídeos e transcreva automaticamente. teste")
 st.divider()
 
 # Sidebar — configurações
