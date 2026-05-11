@@ -78,7 +78,9 @@ if uploaded_file is not None:
             st.divider()
             st.subheader("📝 Resultado")
 
-            st.markdown(f"**Idioma detectado:** {transcription.language} ({transcription.language_probability:.0%})")
+            st.markdown(
+                f"**Idioma detectado:** {transcription.language} ({transcription.language_probability:.0%})"
+            )
             st.markdown(f"**Segmentos:** {len(transcription.segments)}")
 
             # Texto completo

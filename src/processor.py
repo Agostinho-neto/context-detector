@@ -12,7 +12,9 @@ def _format_timestamp(seconds: float) -> str:
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
-def save_transcription(transcription: Transcription, name: str, output_dir: Path) -> None:
+def save_transcription(
+    transcription: Transcription, name: str, output_dir: Path
+) -> None:
     """Salva a transcrição em múltiplos formatos (.txt, .srt, .json)."""
 
     # Texto simples
@@ -50,7 +52,9 @@ def save_transcription(transcription: Transcription, name: str, output_dir: Path
             for seg in transcription.segments
         ],
     }
-    json_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    json_path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(f"  Salvo: {json_path.name}")
 
 

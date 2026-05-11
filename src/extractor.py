@@ -20,12 +20,16 @@ def extract_audio(video_path: Path, output_dir: Path) -> Path:
 
     cmd = [
         _get_ffmpeg(),
-        "-i", str(video_path),
-        "-vn",                  # sem vídeo
-        "-acodec", "pcm_s16le", # codec WAV 16-bit
-        "-ar", "16000",         # 16kHz (ideal para Whisper)
-        "-ac", "1",             # mono
-        "-y",                   # sobrescrever se existir
+        "-i",
+        str(video_path),
+        "-vn",  # sem vídeo
+        "-acodec",
+        "pcm_s16le",  # codec WAV 16-bit
+        "-ar",
+        "16000",  # 16kHz (ideal para Whisper)
+        "-ac",
+        "1",  # mono
+        "-y",  # sobrescrever se existir
         str(audio_path),
     ]
 

@@ -23,13 +23,13 @@ VIDEO_EXTENSIONS = {".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv", ".wmv"}
 def show_banner():
     print(BANNER)
     print(f"  v{VERSION} — Extração de áudio e transcrição de vídeos")
-    print(f"{'─'*60}")
+    print(f"{'─' * 60}")
 
 
 def process_video(video_path: Path, output_dir: Path, model_size: str = "base") -> None:
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Processando: {video_path.name}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # 1. Extrair áudio
     audio_path = extract_audio(video_path, output_dir)
@@ -54,7 +54,8 @@ def get_video_files(input_path: Path) -> list[Path]:
         return []
 
     videos = [
-        f for f in input_path.iterdir()
+        f
+        for f in input_path.iterdir()
         if f.is_file() and f.suffix.lower() in VIDEO_EXTENSIONS
     ]
     return sorted(videos)
@@ -63,22 +64,25 @@ def get_video_files(input_path: Path) -> list[Path]:
 def main():
     parser = argparse.ArgumentParser(
         prog="Context Detector",
-        description="Extrai áudio de vídeos e transcreve para texto."
+        description="Extrai áudio de vídeos e transcreve para texto.",
     )
     parser.add_argument(
-        "-i", "--input",
+        "-i",
+        "--input",
         type=Path,
         default=Path("input"),
         help="Caminho do vídeo ou pasta com vídeos (padrão: input/)",
     )
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         type=Path,
         default=Path("output"),
         help="Pasta de saída para transcrições (padrão: output/)",
     )
     parser.add_argument(
-        "-m", "--model",
+        "-m",
+        "--model",
         type=str,
         default="base",
         choices=["tiny", "base", "small", "medium", "large-v3"],
