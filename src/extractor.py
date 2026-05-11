@@ -1,5 +1,10 @@
 import subprocess
+import time
 from pathlib import Path
+
+from src.logger import get_logger
+
+logger = get_logger("extractor")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FFMPEG_PATH = PROJECT_ROOT / "bin" / "ffmpeg.exe"
@@ -16,7 +21,7 @@ def extract_audio(video_path: Path, output_dir: Path) -> Path:
     """Extrai o áudio de um arquivo de vídeo usando FFmpeg."""
     audio_path = output_dir / f"{video_path.stem}.wav"
 
-    print(f"  Extraindo áudio: {video_path.name} -> {audio_path.name}")
+    logger.info("Extraindo áudio: %s -> %s", video_path.name, audio_path.name)
 
     cmd = [
         _get_ffmpeg(),
@@ -33,16 +38,20 @@ def extract_audio(video_path: Path, output_dir: Path) -> Path:
         str(audio_path),
     ]
 
+    t0 = time.time()
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
     )
+    elapsed = time.time() - t0
 
     if result.returncode != 0:
+        logger.error("FFmpeg falhou ao extrair áudio de %s: %s", video_path.name, result.stderr)
         raise RuntimeError(
             f"FFmpeg falhou ao extrair áudio de {video_path.name}:\n{result.stderr}"
         )
 
-    print(f"  Áudio extraído com sucesso ({audio_path.stat().st_size / 1024:.0f} KB)")
+    size_kb = audio_path.stat().st_size / 1024
+    logger.info("Extração concluída em %.2fs | tamanho=%dKB", elapsed, size_kb)
     return audio_path

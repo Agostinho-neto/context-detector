@@ -1,7 +1,10 @@
 import json
 from pathlib import Path
 
+from src.logger import get_logger
 from src.transcriber import Transcription
+
+logger = get_logger("processor")
 
 
 def _format_timestamp(seconds: float) -> str:
@@ -20,7 +23,7 @@ def save_transcription(
     # Texto simples
     txt_path = output_dir / f"{name}.txt"
     txt_path.write_text(transcription.full_text, encoding="utf-8")
-    print(f"  Salvo: {txt_path.name}")
+    logger.info("Salvo: %s", txt_path.name)
 
     # SRT (legendas com timestamps)
     srt_path = output_dir / f"{name}.srt"
@@ -33,7 +36,7 @@ def save_transcription(
         srt_lines.append(seg.text.strip())
         srt_lines.append("")
     srt_path.write_text("\n".join(srt_lines), encoding="utf-8")
-    print(f"  Salvo: {srt_path.name}")
+    logger.info("Salvo: %s", srt_path.name)
 
     # JSON (dados completos)
     json_path = output_dir / f"{name}.json"
@@ -55,7 +58,7 @@ def save_transcription(
     json_path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print(f"  Salvo: {json_path.name}")
+    logger.info("Salvo: %s", json_path.name)
 
 
 def _format_srt_time(seconds: float) -> str:
