@@ -2,9 +2,9 @@
 
 ![CI/CD](https://github.com/Agostinho-neto/context-detector/actions/workflows/ci.yml/badge.svg)
 
-Ferramenta que extrai o áudio de vídeos e transcreve automaticamente usando **faster-whisper** — tudo rodando local, sem enviar nada pra nuvem.
+Ferramenta que extrai o áudio de vídeos e transcreve automaticamente usando **faster-whisper**, tudo rodando local, sem enviar nada pra nuvem.
 
-Construí esse projeto pra exercitar conceitos de SRE na prática: containerização, CI/CD, observabilidade, tratamento de erros — tudo num projeto funcional de ponta a ponta.
+Construí esse projeto pra exercitar conceitos de SRE na prática: containerização, CI/CD, observabilidade, tratamento de erros, tudo num projeto funcional de ponta a ponta.
 
 ## O que faz
 
@@ -91,8 +91,8 @@ Sobe a aplicação em `http://localhost:8501` e o Prometheus em `http://localhos
 ### Logging
 
 Logs estruturados com dois destinos:
-- **Console** — nível INFO
-- **Arquivo** — nível DEBUG em `logs/app.log`
+- **Console** -> nível INFO
+- **Arquivo** -> nível DEBUG em `logs/app.log`
 
 Formato: `2026-05-11 14:30:00 [INFO] transcriber — Modelo carregado em 2.35s`
 
@@ -115,10 +115,10 @@ O container tem health check configurado via `/_stcore/health` do Streamlit, com
 
 Pipeline no GitHub Actions com 4 jobs:
 
-1. **lint** — Ruff (check + format)
-2. **test** — pytest
-3. **docker** — Build da imagem
-4. **publish** — Push pro GHCR (só na main, depois dos 3 anteriores passarem)
+1. **lint** -> Ruff (check + format)
+2. **test** -> pytest
+3. **docker** -> Build da imagem
+4. **publish** -> Push pro GHCR (só na main, depois dos 3 anteriores passarem)
 
 ## Estrutura
 
