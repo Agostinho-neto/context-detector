@@ -2,60 +2,79 @@
 
 ![CI/CD](https://github.com/Agostinho-neto/context-detector/actions/workflows/ci.yml/badge.svg)
 
-Aplicação para extração de áudio de vídeos e transcrição automática usando **faster-whisper**.
+Ferramenta que extrai o áudio de vídeos e transcreve automaticamente usando **faster-whisper** — tudo rodando local, sem enviar nada pra nuvem.
 
-## Funcionalidades
+Construí esse projeto pra exercitar conceitos de SRE na prática: containerização, CI/CD, observabilidade, tratamento de erros — tudo num projeto funcional de ponta a ponta.
 
-- Extração de áudio de múltiplos formatos de vídeo (`.mp4`, `.mkv`, `.avi`, `.mov`, `.webm`, `.flv`, `.wmv`)
-- Transcrição via modelo Whisper (execução local, sem envio de dados externos)
-- Detecção automática de idioma
-- Saída em 3 formatos: `.txt`, `.srt` (legendas) e `.json` (dados completos)
-- Processamento em lote (pasta inteira de vídeos)
+## O que faz
 
-## Pré-requisitos
+- Recebe vídeos (`.mp4`, `.mkv`, `.avi`, `.mov`, `.webm`, `.flv`, `.wmv`)
+- Extrai o áudio via FFmpeg
+- Transcreve usando Whisper (local, sem API externa)
+- Detecta o idioma automaticamente
+- Gera saída em 3 formatos: `.txt`, `.srt` (legendas) e `.json`
+- Suporta processamento em lote (pasta inteira)
 
-- **Python 3.10+**
-- **FFmpeg** instalado e disponível no PATH → [Download](https://ffmpeg.org/download.html)
+## Stack
 
-## Instalação
+| Componente | Tecnologia |
+|---|---|
+| Linguagem | Python 3.13 |
+| Transcrição | faster-whisper |
+| Interface web | Streamlit |
+| Extração de áudio | FFmpeg |
+| Container | Docker + Docker Compose |
+| CI/CD | GitHub Actions (lint, test, build, publish) |
+| Registry | GitHub Container Registry (GHCR) |
+| Métricas | Prometheus + prometheus-client |
+| Logging | logging (console + arquivo) |
+| Lint/Format | Ruff |
+| Testes | pytest |
+
+## Como rodar
+
+### Local
 
 ```bash
-# Clone o repositório
-git clone <repo-url> context-detector
+git clone https://github.com/Agostinho-neto/context-detector.git
 cd context-detector
 
-# Crie um ambiente virtual (recomendado)
 python -m venv .venv
 .venv\Scripts\activate  # Windows
 # source .venv/bin/activate  # Linux/Mac
 
-# Instale as dependências
 pip install -r requirements.txt
 ```
 
-## Uso
+Interface web:
+```bash
+streamlit run app.py
+```
 
+CLI:
 ```bash
 # Processar todos os vídeos da pasta input/
 python main.py
 
-# Processar um vídeo específico
-python main.py -i "caminho/do/video.mp4"
-
-# Definir pasta de saída
-python main.py -i input/ -o resultados/
-
-# Usar modelo maior (mais preciso)
-python main.py -m medium
+# Vídeo específico com modelo maior
+python main.py -i "video.mp4" -m medium
 ```
 
-### Opções
+### Docker
+
+```bash
+docker compose up --build
+```
+
+Sobe a aplicação em `http://localhost:8501` e o Prometheus em `http://localhost:9091`.
+
+## CLI — Opções
 
 | Argumento | Descrição | Padrão |
 |---|---|---|
-| `-i`, `--input` | Caminho do vídeo ou pasta com vídeos | `input/` |
-| `-o`, `--output` | Pasta de saída para transcrições | `output/` |
-| `-m`, `--model` | Tamanho do modelo Whisper | `base` |
+| `-i`, `--input` | Caminho do vídeo ou pasta | `input/` |
+| `-o`, `--output` | Pasta de saída | `output/` |
+| `-m`, `--model` | Modelo Whisper | `base` |
 
 ### Modelos disponíveis
 
@@ -67,28 +86,73 @@ python main.py -m medium
 | `medium` | ~5 GB | Lento | Ótima |
 | `large-v3` | ~10 GB | Muito lento | Máxima |
 
-## Estrutura do Projeto
+## Observabilidade
+
+### Logging
+
+Logs estruturados com dois destinos:
+- **Console** — nível INFO
+- **Arquivo** — nível DEBUG em `logs/app.log`
+
+Formato: `2026-05-11 14:30:00 [INFO] transcriber — Modelo carregado em 2.35s`
+
+### Métricas (Prometheus)
+
+Endpoint exposto em `:9090/metrics`. Métricas coletadas:
+
+| Métrica | Tipo | O que mede |
+|---|---|---|
+| `videos_processed_total` | Counter | Total de vídeos (por status: success/error) |
+| `extraction_duration_seconds` | Histogram | Tempo de extração do áudio |
+| `transcription_duration_seconds` | Histogram | Tempo de transcrição (por modelo) |
+| `model_load_duration_seconds` | Histogram | Tempo de carregamento do Whisper |
+
+### Health check
+
+O container tem health check configurado via `/_stcore/health` do Streamlit, com retry a cada 30s.
+
+## CI/CD
+
+Pipeline no GitHub Actions com 4 jobs:
+
+1. **lint** — Ruff (check + format)
+2. **test** — pytest
+3. **docker** — Build da imagem
+4. **publish** — Push pro GHCR (só na main, depois dos 3 anteriores passarem)
+
+## Estrutura
 
 ```
 context-detector/
-├── main.py              # Ponto de entrada (CLI)
-├── requirements.txt     # Dependências
-├── .gitignore
-├── input/               # Colocar vídeos aqui
-├── output/              # Transcrições geradas
-└── src/
-    ├── __init__.py
-    ├── extractor.py     # Extração de áudio (FFmpeg)
-    ├── transcriber.py   # Transcrição (faster-whisper)
-    └── processor.py     # Salva em .txt, .srt e .json
+├── app.py                  # Interface web (Streamlit)
+├── main.py                 # CLI
+├── Dockerfile
+├── docker-compose.yml
+├── prometheus.yml
+├── requirements.txt
+├── pyproject.toml
+├── input/                  # Vídeos pra processar
+├── output/                 # Transcrições geradas
+├── logs/                   # Logs da aplicação
+├── src/
+│   ├── extractor.py        # Extração de áudio (FFmpeg)
+│   ├── transcriber.py      # Transcrição (faster-whisper)
+│   ├── processor.py        # Salva .txt, .srt, .json
+│   ├── logger.py           # Configuração de logging
+│   └── metrics.py          # Métricas Prometheus
+├── tests/
+│   └── test_processor.py
+└── .github/
+    └── workflows/
+        └── ci.yml          # Pipeline CI/CD
 ```
 
 ## Saídas
 
-Para cada vídeo processado, são gerados 3 arquivos na pasta de saída:
+Pra cada vídeo processado:
 
 | Arquivo | Conteúdo |
 |---|---|
-| `video.txt` | Texto corrido da transcrição |
-| `video.srt` | Legendas com timestamps (importável em players) |
+| `video.txt` | Texto corrido |
+| `video.srt` | Legendas com timestamps |
 | `video.json` | Dados completos (segmentos, idioma, probabilidade) |
