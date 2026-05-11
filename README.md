@@ -1,5 +1,7 @@
 # Context Detector
 
+![CI](https://github.com/Agostinho-neto/context-detector/actions/workflows/ci.yml/badge.svg)
+
 Aplicação para extração de áudio de vídeos e transcrição automática usando **faster-whisper**.
 
 ## Funcionalidades
