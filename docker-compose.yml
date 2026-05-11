@@ -3,6 +3,7 @@ services:
     build: .
     ports:
       - "8501:8501"
+      - "9090:9090"
     volumes:
       - ./output:/app/output
       - ./logs:/app/logs
@@ -12,3 +13,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - app

@@ -13,6 +13,6 @@ COPY . .
 
 RUN mkdir -p input output
 
-EXPOSE 8501
+EXPOSE 8501 9090
 
 CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0"]

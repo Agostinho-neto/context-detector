@@ -5,6 +5,7 @@ from pathlib import Path
 from faster_whisper import WhisperModel
 
 from src.logger import get_logger
+from src.metrics import TRANSCRIPTION_DURATION, MODEL_LOAD_DURATION
 
 logger = get_logger("transcriber")
 
@@ -36,7 +37,8 @@ def transcribe_audio(audio_path: Path, model_size: str = "base") -> Transcriptio
     try:
         logger.info("Carregando modelo Whisper (%s)...", model_size)
         t0 = time.time()
-        model = WhisperModel(model_size, device="auto", compute_type="auto")
+        with MODEL_LOAD_DURATION.labels(model_size=model_size).time():
+            model = WhisperModel(model_size, device="auto", compute_type="auto")
         logger.info("Modelo carregado em %.2fs", time.time() - t0)
     except Exception as e:
         logger.error("Falha ao carregar modelo Whisper '%s': %s", model_size, e)
@@ -47,15 +49,16 @@ def transcribe_audio(audio_path: Path, model_size: str = "base") -> Transcriptio
     try:
         logger.info("Transcrevendo: %s", audio_path.name)
         t1 = time.time()
-        segments_gen, info = model.transcribe(
-            str(audio_path),
-            beam_size=5,
-            vad_filter=True,
-        )
+        with TRANSCRIPTION_DURATION.labels(model_size=model_size).time():
+            segments_gen, info = model.transcribe(
+                str(audio_path),
+                beam_size=5,
+                vad_filter=True,
+            )
 
-        segments = []
-        for seg in segments_gen:
-            segments.append(Segment(start=seg.start, end=seg.end, text=seg.text))
+        segments = [
+            Segment(start=seg.start, end=seg.end, text=seg.text) for seg in segments_gen
+        ]
     except Exception as e:
         logger.error("Falha ao transcrever %s: %s", audio_path.name, e)
         raise RuntimeError(f"Falha ao transcrever {audio_path.name}: {e}") from e

@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 
 from src.logger import get_logger
+from src.metrics import EXTRACTION_DURATION
 
 logger = get_logger("extractor")
 
@@ -44,19 +45,20 @@ def extract_audio(video_path: Path, output_dir: Path) -> Path:
     ]
 
     t0 = time.time()
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-        )
-    except FileNotFoundError:
-        logger.error(
-            "FFmpeg não encontrado. Instale o FFmpeg ou coloque-o em bin/ffmpeg.exe"
-        )
-        raise FileNotFoundError(
-            "FFmpeg não encontrado. Instale o FFmpeg ou coloque-o em bin/ffmpeg.exe"
-        )
+    with EXTRACTION_DURATION.time():
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+            )
+        except FileNotFoundError:
+            logger.error(
+                "FFmpeg não encontrado. Instale o FFmpeg ou coloque-o em bin/ffmpeg.exe"
+            )
+            raise FileNotFoundError(
+                "FFmpeg não encontrado. Instale o FFmpeg ou coloque-o em bin/ffmpeg.exe"
+            )
     elapsed = time.time() - t0
 
     if result.returncode != 0:

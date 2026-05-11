@@ -5,6 +5,7 @@ from pathlib import Path
 from src.extractor import extract_audio
 from src.transcriber import transcribe_audio
 from src.processor import save_transcription
+from src.metrics import VIDEOS_PROCESSED
 
 
 VERSION = "1.0.0"
@@ -45,6 +46,7 @@ def process_video(video_path: Path, output_dir: Path, model_size: str = "base") 
         audio_path.unlink(missing_ok=True)
 
         print(f"Concluído: {video_path.name}")
+        VIDEOS_PROCESSED.labels(status="success").inc()
         return True
     except FileNotFoundError as e:
         print(f"Erro — arquivo não encontrado: {e}")

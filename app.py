@@ -1,12 +1,21 @@
 import streamlit as st
 from pathlib import Path
 import tempfile
+from prometheus_client import start_http_server
 
 from src.extractor import extract_audio
 from src.transcriber import transcribe_audio
 from src.processor import save_transcription
 
 VIDEO_EXTENSIONS = ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv"]
+
+# Inicia o servidor de métricas apenas uma vez
+if "metrics_started" not in st.session_state:
+    try:
+        start_http_server(9090)
+    except OSError:
+        pass  # Servidor já rodando em outro worker/sessão
+    st.session_state["metrics_started"] = True
 
 st.set_page_config(page_title="Context Detector", page_icon="🎬", layout="centered")
 
