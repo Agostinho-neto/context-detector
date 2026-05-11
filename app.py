@@ -1,7 +1,6 @@
 import streamlit as st
 from pathlib import Path
 import tempfile
-import shutil
 
 from src.extractor import extract_audio
 from src.transcriber import transcribe_audio
