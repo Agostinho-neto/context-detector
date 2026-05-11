@@ -50,7 +50,7 @@ jobs:
       - name: Build Docker image
         run: docker build -t context-detector .
 
-publish:
+  publish:
     runs-on: ubuntu-latest
     needs: [lint, test, docker]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -75,4 +75,3 @@ publish:
           context: .
           push: true
           tags: ghcr.io/agostinho-neto/context-detector:latest
-
