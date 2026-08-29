@@ -51,6 +51,7 @@ def extract_audio(video_path: Path, output_dir: Path) -> Path:
                 cmd,
                 capture_output=True,
                 text=True,
+                check=False,
             )
         except FileNotFoundError:
             logger.error(

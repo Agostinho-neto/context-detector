@@ -6,7 +6,7 @@ from pathlib import Path
 from faster_whisper import WhisperModel
 
 from src.logger import get_logger
-from src.metrics import TRANSCRIPTION_DURATION, MODEL_LOAD_DURATION
+from src.metrics import MODEL_LOAD_DURATION, TRANSCRIPTION_DURATION
 
 logger = get_logger("transcriber")
 
@@ -27,6 +27,7 @@ class Transcription:
     @property
     def full_text(self) -> str:
         return " ".join(seg.text.strip() for seg in self.segments)
+
 
 @lru_cache(maxsize=1)
 def _load_model(model_size: str) -> WhisperModel:
@@ -49,7 +50,7 @@ def _load_model(model_size: str) -> WhisperModel:
         raise RuntimeError(
             f"Falha ao carregar modelo Whisper '{model_size}': {e}"
         ) from e
-    
+
 
 def transcribe_audio(audio_path: Path, model_size: str = "base") -> Transcription:
     """Transcreve um arquivo de áudio usando faster-whisper."""

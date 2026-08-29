@@ -1,4 +1,4 @@
-from src.transcriber import Transcription, Segment
+from src.transcriber import Segment, Transcription
 
 
 def test_full_text():

@@ -1,11 +1,12 @@
-import streamlit as st
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import streamlit as st
 from prometheus_client import start_http_server
 
 from src.extractor import extract_audio
-from src.transcriber import transcribe_audio
 from src.processor import save_transcription
+from src.transcriber import transcribe_audio
 
 VIDEO_EXTENSIONS = ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv"]
 

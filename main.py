@@ -3,10 +3,9 @@ import sys
 from pathlib import Path
 
 from src.extractor import extract_audio
-from src.transcriber import transcribe_audio
-from src.processor import save_transcription
 from src.metrics import VIDEOS_PROCESSED
-
+from src.processor import save_transcription
+from src.transcriber import transcribe_audio
 
 VERSION = "1.0.0"
 
