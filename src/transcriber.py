@@ -1,5 +1,6 @@
 import time
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 from faster_whisper import WhisperModel
@@ -27,6 +28,28 @@ class Transcription:
     def full_text(self) -> str:
         return " ".join(seg.text.strip() for seg in self.segments)
 
+@lru_cache(maxsize=1)
+def _load_model(model_size: str) -> WhisperModel:
+    """Carrega e mantém em memória o modelo Whisper mais recente."""
+    try:
+        logger.info("Carregando modelo Whisper (%s)...", model_size)
+        t0 = time.time()
+
+        with MODEL_LOAD_DURATION.labels(model_size=model_size).time():
+            model = WhisperModel(
+                model_size,
+                device="auto",
+                compute_type="auto",
+            )
+
+        logger.info("Modelo carregado em %.2fs", time.time() - t0)
+        return model
+    except Exception as e:
+        logger.error("Falha ao carregar modelo Whisper '%s': %s", model_size, e)
+        raise RuntimeError(
+            f"Falha ao carregar modelo Whisper '{model_size}': {e}"
+        ) from e
+    
 
 def transcribe_audio(audio_path: Path, model_size: str = "base") -> Transcription:
     """Transcreve um arquivo de áudio usando faster-whisper."""
@@ -34,17 +57,7 @@ def transcribe_audio(audio_path: Path, model_size: str = "base") -> Transcriptio
         logger.error("Arquivo de áudio não encontrado: %s", audio_path)
         raise FileNotFoundError(f"Arquivo de áudio não encontrado: {audio_path}")
 
-    try:
-        logger.info("Carregando modelo Whisper (%s)...", model_size)
-        t0 = time.time()
-        with MODEL_LOAD_DURATION.labels(model_size=model_size).time():
-            model = WhisperModel(model_size, device="auto", compute_type="auto")
-        logger.info("Modelo carregado em %.2fs", time.time() - t0)
-    except Exception as e:
-        logger.error("Falha ao carregar modelo Whisper '%s': %s", model_size, e)
-        raise RuntimeError(
-            f"Falha ao carregar modelo Whisper '{model_size}': {e}"
-        ) from e
+    model = _load_model(model_size)
 
     try:
         logger.info("Transcrevendo: %s", audio_path.name)
