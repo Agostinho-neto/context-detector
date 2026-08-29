@@ -31,9 +31,7 @@ bin/
 *.tfplan
 crash.log
 **/terraform.tfvars
-.terraform.lock.hcl
 .tf
-terraform.tfvars.example
 
 # Resultados gerados
 output/*
