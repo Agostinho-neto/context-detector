@@ -17,7 +17,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install Ruff
-        run: pip install ruff
+        run: pip install ruff==0.16.5
 
       - name: Check linting
         run: ruff check .
@@ -50,9 +50,33 @@ jobs:
       - name: Build Docker image
         run: docker build -t context-detector .
 
+  terraform:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+
+      - name: Terraform format
+        run: terraform fmt -check
+
+      - name: Terraform init
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform validate
+
   publish:
     runs-on: ubuntu-latest
-    needs: [lint, test, docker]
+    needs: [lint, test, docker, terraform]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     permissions:
