@@ -1,0 +1,3 @@
+project_id             = "seu-project-id"
+github_repository      = "seu-usuario/context-detector"
+terraform_state_bucket = "seu-bucket-tfstate"

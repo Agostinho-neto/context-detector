@@ -34,28 +34,21 @@ Construí esse projeto pra exercitar conceitos de SRE na prática: containeriza�
 | Lint/Format | Ruff |
 | Testes | pytest |
 
-## Como rodar
+## Como executar
 
-O projeto pode ser usado de duas maneiras:
+### Google Cloud Run
 
-- **Localmente:** a aplicação e o Prometheus rodam em containers com Docker Compose.
-- **Na nuvem:** um ambiente temporário de demonstração roda no Cloud Run enquanto os recursos estiverem provisionados.
+O caminho principal do projeto usa uma imagem Docker no Artifact Registry e infraestrutura gerenciada com Terraform:
 
-O processo de recriar ou atualizar os recursos na nuvem é separado da execução local.
-
-### Execução local com Docker
-
-```bash
-git clone https://github.com/Agostinho-neto/context-detector.git
-cd context-detector
-docker compose up --build
+```text
+GitHub Actions
+    -> cria a imagem Docker
+    -> envia ao Artifact Registry
+    -> aplica o Terraform
+    -> disponibiliza a aplicação no Cloud Run
 ```
 
-Sobe a aplicação em `http://localhost:8501` e o Prometheus em `http://localhost:9091`.
-
-### Criação e atualização do ambiente na nuvem
-
-A infraestrutura em `infra/` cria e configura:
+A infraestrutura em `infra/` configura:
 
 - APIs necessárias do Google Cloud
 - Repositório Docker no Artifact Registry
@@ -63,38 +56,93 @@ A infraestrutura em `infra/` cria e configura:
 - Serviço público no Cloud Run
 - Limites de CPU, memória, concorrência e número de instâncias
 
-A imagem é construída com Docker, enviada ao Artifact Registry e usada pelo Cloud Run para iniciar as instâncias da aplicação sob demanda.
-
-O estado do Terraform fica armazenado remotamente no bucket `context-detector-dev-tfstate`, com o prefixo `context-detector/terraform`. O backend remoto permite que a infraestrutura seja gerenciada fora de uma única máquina e mantém o bloqueio do estado durante alterações.
-
-Para gerenciar esse ambiente são necessários Docker, Google Cloud SDK e Terraform, além de autenticação e acesso ao projeto no Google Cloud.
-
-O fluxo atual de implantação é manual e dividido em duas responsabilidades:
+Quando alguém acessa a URL pública, o Cloud Run inicia uma instância com o container. O vídeo é processado pelo FFmpeg e pelo faster-whisper dentro dessa instância. Sem requisições, o serviço pode reduzir para zero instâncias.
 
 ```text
-Docker: cria e envia a imagem da aplicação
-Terraform: cria ou atualiza os recursos que executam essa imagem
+Navegador
+    -> Cloud Run
+    -> container Streamlit
+    -> FFmpeg extrai o áudio
+    -> faster-whisper transcreve
+    -> usuário recebe TXT, SRT ou JSON
 ```
 
-Depois que a imagem esperada pelo `main.tf` estiver disponível no Artifact Registry, a infraestrutura pode ser validada e aplicada:
+Os arquivos gerados dentro do container são temporários. O usuário deve baixar o resultado antes que a instância seja encerrada.
+
+#### Preparação do ambiente
+
+Para implantar na própria conta são necessários:
+
+- Projeto Google Cloud com faturamento habilitado
+- Google Cloud SDK e Terraform para o bootstrap inicial
+- Bucket GCS para o estado remoto
+- Fork ou cópia do projeto em um repositório GitHub
+
+O diretório `infra/bootstrap/` cria a integração segura entre GitHub Actions e Google Cloud usando Workload Identity Federation. Cada usuário informa o próprio projeto, repositório e bucket em `infra/bootstrap/terraform.tfvars`, a partir do arquivo de exemplo.
 
 ```bash
-cd infra
-terraform init
-terraform plan -out=deploy.tfplan
-terraform apply deploy.tfplan
-terraform output -raw cloud_run_url
+cd infra/bootstrap
+terraform init -reconfigure \
+  -backend-config="bucket=SEU_BUCKET" \
+  -backend-config="prefix=context-detector/bootstrap"
+terraform apply
 ```
 
-A URL retornada fica disponível somente enquanto o ambiente estiver provisionado. Como este é um projeto de portfólio, o ambiente pode ser criado para demonstrações e destruído depois do uso para evitar a permanência de recursos com potencial de cobrança:
+Depois do bootstrap, os outputs são cadastrados nas variáveis do repositório junto com projeto, região e bucket:
+
+```text
+GCP_PROJECT_ID
+GCP_REGION
+GCP_TF_STATE_BUCKET
+GCP_WORKLOAD_IDENTITY_PROVIDER
+GCP_SERVICE_ACCOUNT
+```
+
+#### Deploy
+
+O deploy não acontece automaticamente após um merge. Ele é iniciado manualmente em:
+
+```text
+GitHub -> Actions -> Cloud Run CD -> Run workflow -> deploy
+```
+
+O workflow autentica sem chave JSON, prepara o Artifact Registry, constrói uma imagem identificada pelo SHA do commit, envia a imagem e aplica o Terraform. Ao final, exibe a URL pública do Cloud Run.
+
+O estado da aplicação usa o mesmo bucket com outro prefixo:
 
 ```bash
-terraform destroy
+terraform init -reconfigure \
+  -backend-config="bucket=SEU_BUCKET" \
+  -backend-config="prefix=context-detector/terraform"
 ```
 
-O bucket que armazena o estado remoto foi criado separadamente e não faz parte dos recursos destruídos por esse comando. Ele permanece disponível para guardar o estado das próximas execuções.
+#### Destroy
 
-O arquivo `terraform.tfvars` contém os valores do ambiente e não é versionado. O arquivo `terraform.tfvars.example` serve como referência.
+Como o ambiente de demonstração é temporário, ele pode ser removido pelo mesmo workflow:
+
+```text
+GitHub -> Actions -> Cloud Run CD -> Run workflow -> destroy
+```
+
+O destroy remove a infraestrutura da aplicação gerenciada em `infra/`, mas mantém o bootstrap e o bucket do state. Assim, a autenticação continua pronta para um novo deploy.
+
+Cada pessoa que implantar o projeto utiliza a própria conta Google Cloud e assume os eventuais custos dos recursos criados.
+
+### Execução local com Docker
+
+Para testar sem criar recursos na nuvem:
+
+```bash
+git clone https://github.com/Agostinho-neto/context-detector.git
+cd context-detector
+docker compose up --build
+```
+
+O Compose constrói a imagem a partir do `Dockerfile` e sobe:
+
+- Aplicação em `http://localhost:8501`
+- Prometheus em `http://localhost:9091`
+- Métricas em `http://localhost:9090/metrics`
 
 ## CLI — Opções
 
@@ -143,15 +191,15 @@ O container tem health check configurado via `/_stcore/health` do Streamlit, com
 
 ## CI/CD
 
-Pipeline no GitHub Actions com 5 jobs:
+O CI é executado em Pull Requests e pushes na `main`:
 
-1. **lint** -> Ruff (check + format)
+1. **lint** -> Ruff e actionlint
 2. **test** -> pytest
 3. **docker** -> Build da imagem
-4. **terraform** -> Formatação e validação da infraestrutura
-5. **publish** -> Push pro GHCR (só na main, depois dos 4 anteriores passarem)
+4. **terraform** -> Validação de `infra/` e `infra/bootstrap/`
+5. **publish** -> Push pro GHCR, somente na `main`
 
-O pipeline atual publica a imagem no GHCR. A automação do envio ao Artifact Registry e da atualização do Cloud Run será adicionada na etapa de CD.
+O CD é separado e manual. O workflow `Cloud Run CD` usa Workload Identity Federation para obter credenciais temporárias, publica uma imagem com a tag do commit no Artifact Registry e aplica o Terraform. O mesmo workflow oferece a ação `destroy` para remover o ambiente de demonstração.
 
 ## Estrutura
 
@@ -172,7 +220,13 @@ context-detector/
 │   ├── variables.tf        # Variáveis da infraestrutura
 │   ├── outputs.tf          # URL e identificadores dos recursos
 │   ├── versions.tf         # Providers e backend remoto no GCS
-│   └── terraform.tfvars.example
+│   ├── terraform.tfvars.example
+│   └── bootstrap/
+│       ├── main.tf         # Workload Identity e permissões do CD
+│       ├── variables.tf
+│       ├── outputs.tf
+│       ├── versions.tf
+│       └── terraform.tfvars.example
 ├── src/
 │   ├── extractor.py        # Extração de áudio (FFmpeg)
 │   ├── transcriber.py      # Transcrição (faster-whisper)
@@ -183,7 +237,8 @@ context-detector/
 │   └── test_processor.py
 └── .github/
     └── workflows/
-        └── ci.yml          # Pipeline CI/CD
+        ├── ci.yml          # Qualidade, testes, build e publicação no GHCR
+        └── cd.yaml         # Deploy e destroy manuais no Cloud Run
 ```
 
 ## Saídas
