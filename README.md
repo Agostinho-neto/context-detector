@@ -10,7 +10,7 @@ Construí esse projeto pra exercitar conceitos de SRE na prática: containeriza�
 
 - Recebe vídeos (`.mp4`, `.mkv`, `.avi`, `.mov`, `.webm`, `.flv`, `.wmv`)
 - Extrai o áudio via FFmpeg
-- Transcreve usando Whisper (local, sem API externa)
+- Transcreve usando Whisper dentro do próprio container, sem API de transcrição
 - Detecta o idioma automaticamente
 - Gera saída em 3 formatos: `.txt`, `.srt` (legendas) e `.json`
 - Suporta processamento em lote (pasta inteira)
@@ -57,6 +57,8 @@ A infraestrutura em `infra/` configura:
 - Limites de CPU, memória, concorrência e número de instâncias
 
 Quando alguém acessa a URL pública, o Cloud Run inicia uma instância com o container. O vídeo é processado pelo FFmpeg e pelo faster-whisper dentro dessa instância. Sem requisições, o serviço pode reduzir para zero instâncias.
+
+A imagem padrão inclui o modelo Whisper `base`. O modelo é baixado durante o `docker build` e carregado de `/opt/whisper-model` durante a execução. Isso evita downloads do Hugging Face em cada nova instância e torna o cold start independente dos limites de requisição do Hub.
 
 ```text
 Navegador
@@ -106,7 +108,7 @@ O deploy não acontece automaticamente após um merge. Ele é iniciado manualmen
 GitHub -> Actions -> Cloud Run CD -> Run workflow -> deploy
 ```
 
-O workflow autentica sem chave JSON, prepara o Artifact Registry, constrói uma imagem identificada pelo SHA do commit, envia a imagem e aplica o Terraform. Ao final, exibe a URL pública do Cloud Run.
+O workflow autentica sem chave JSON, prepara o Artifact Registry, constrói uma imagem identificada pelo SHA do commit e com o modelo `base` incluído, envia a imagem e aplica o Terraform. Ao final, exibe a URL pública do Cloud Run.
 
 O estado da aplicação usa o mesmo bucket com outro prefixo:
 
@@ -144,6 +146,15 @@ O Compose constrói a imagem a partir do `Dockerfile` e sobe:
 - Prometheus em `http://localhost:9091`
 - Métricas em `http://localhost:9090/metrics`
 
+Por padrão, a imagem oferece somente o modelo `base`, já armazenado nela. Para construir uma imagem com outro modelo:
+
+```bash
+docker compose build --build-arg WHISPER_MODEL=small
+docker compose up
+```
+
+Cada imagem contém um único modelo para evitar downloads durante a execução e limitar seu tamanho.
+
 ## CLI — Opções
 
 | Argumento | Descrição | Padrão |
@@ -153,6 +164,8 @@ O Compose constrói a imagem a partir do `Dockerfile` e sobe:
 | `-m`, `--model` | Modelo Whisper | `base` |
 
 ### Modelos disponíveis
+
+O modelo padrão da imagem é `base`. Os demais podem ser usados em uma imagem construída com `--build-arg WHISPER_MODEL=<modelo>` ou na execução direta com Python, que mantém o download e o cache tradicionais do faster-whisper.
 
 | Modelo | VRAM | Velocidade | Qualidade |
 |---|---|---|---|
