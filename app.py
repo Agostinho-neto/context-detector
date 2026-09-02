@@ -1,3 +1,4 @@
+import os
 import tempfile
 from pathlib import Path
 
@@ -9,6 +10,12 @@ from src.processor import save_transcription
 from src.transcriber import transcribe_audio
 
 VIDEO_EXTENSIONS = ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv"]
+
+WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3"]
+
+bundled_model_name = os.getenv("WHISPER_MODEL_NAME")
+model_options = [bundled_model_name] if bundled_model_name else WHISPER_MODELS
+default_model_index = model_options.index("base") if "base" in model_options else 0
 
 # Inicia o servidor de métricas apenas uma vez
 if "metrics_started" not in st.session_state:
@@ -29,10 +36,16 @@ with st.sidebar:
     st.header("⚙️ Configurações")
     model_size = st.selectbox(
         "Modelo Whisper",
-        options=["tiny", "base", "small", "medium", "large-v3"],
-        index=1,
+        options=model_options,
+        index=default_model_index,
         help="Modelos maiores são mais precisos, mas mais lentos.",
     )
+
+    if bundled_model_name:
+        st.caption(
+            f"Esta imagem inclui o modelo '{bundled_model_name}' "
+            "para execução sem downloads externos."
+        )
     st.markdown("""
     | Modelo | Qualidade | Velocidade |
     |---|---|---|

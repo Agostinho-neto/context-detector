@@ -1,3 +1,4 @@
+import os
 import time
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -36,11 +37,33 @@ def _load_model(model_size: str) -> WhisperModel:
         logger.info("Carregando modelo Whisper (%s)...", model_size)
         t0 = time.time()
 
+        bundled_model_name = os.getenv("WHISPER_MODEL_NAME")
+        bundled_model_path = os.getenv("WHISPER_MODEL_PATH")
+        model_reference = model_size
+        local_files_only = False
+
+        if bundled_model_name and bundled_model_path:
+            if model_size != bundled_model_name:
+                raise ValueError(
+                    f"Modelo '{model_size}' indisponível neste ambiente. "
+                    f"Use o modelo '{bundled_model_name}'."
+                )
+
+            model_path = Path(bundled_model_path)
+            if not model_path.is_dir():
+                raise FileNotFoundError(
+                    f"Modelo empacotado não encontrado em: {model_path}"
+                )
+
+            model_reference = str(model_path)
+            local_files_only = True
+
         with MODEL_LOAD_DURATION.labels(model_size=model_size).time():
             model = WhisperModel(
-                model_size,
+                model_reference,
                 device="auto",
                 compute_type="auto",
+                local_files_only=local_files_only,
             )
 
         logger.info("Modelo carregado em %.2fs", time.time() - t0)
